@@ -10,9 +10,14 @@ packages = [{ include = "saia" }]
 python = ">=3.12,<3.13"
 httpx = "^0.25.1"
 pyside6 = "^6.6.0"
+beautifulsoup4 = "^4.12.2"
 
 [tool.poetry.scripts]
 saia = 'saia.main:main'
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.11.0"
+isort = "^5.12.0"
 
 [build-system]
 requires = ["poetry-core"]
