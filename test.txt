@@ -1,0 +1,5 @@
+pySun //optional
+PySide6
+Httpx
+pyPoetry
+pyTest //optional
