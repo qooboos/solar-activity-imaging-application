@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "saia"
+version = "0.1.0"
+description = ""
+authors = ["Jakub Mieszczak"]
+readme = "README.md"
+packages = [{ include = "saia" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+httpx = "^0.25.1"
+pyside6 = "^6.6.0"
+
+[tool.poetry.scripts]
+saia = 'saia.main:main'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
