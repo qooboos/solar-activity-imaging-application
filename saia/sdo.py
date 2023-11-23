@@ -63,30 +63,30 @@ class IMGInfo:
 
 
 class SDOClient:
-    def __init__(self, client: httpx.Client):
+    def __init__(self, client: httpx.AsyncClient):
         self.client = client
 
-    def fetch_table(self, path: str, remove_suffix: str = ""):
-        r = self.client.get(URL + path)
+    async def fetch_table(self, path: str, remove_suffix: str = ""):
+        r = await self.client.get(URL + path)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         a_tags = soup.body.pre.find_all("a")[5:]  # type: ignore
         return map(lambda a: a.text.removesuffix(remove_suffix), a_tags)
 
-    def fetch_years(self):
-        return list(self.fetch_table("/", "/"))
+    async def fetch_years(self):
+        return list(await self.fetch_table("/", "/"))
 
-    def fetch_months(self, year: str):
-        return list(self.fetch_table(f"/{year}/", "/"))
+    async def fetch_months(self, year: str):
+        return list(await self.fetch_table(f"/{year}/", "/"))
 
-    def fetch_days(self, year: str, month: str):
-        return list(self.fetch_table(f"/{year}/{month}/", "/"))
+    async def fetch_days(self, year: str, month: str):
+        return list(await self.fetch_table(f"/{year}/{month}/", "/"))
 
-    def fetch_file_info(self, year: str, month: str, day: str) -> list[IMGInfo]:
-        filenames = self.fetch_table(f"/{year}/{month}/{day}/")
+    async def fetch_file_info(self, year: str, month: str, day: str) -> list[IMGInfo]:
+        filenames = await self.fetch_table(f"/{year}/{month}/{day}/")
         return list(filter(None, map(IMGInfo.from_filename, filenames)))
 
-    def download_image(self, image_info: IMGInfo, f: BufferedWriter):
+    async def download_image(self, image_info: IMGInfo, f: BufferedWriter):
         dt = image_info.datetime_
         url = "/".join(
             [
@@ -98,7 +98,7 @@ class SDOClient:
             ]
         )
 
-        with self.client.stream("GET", url) as r:
+        async with self.client.stream("GET", url) as r:
             r.raise_for_status()
-            for chunk in r.iter_raw():
+            async for chunk in r.aiter_raw(4096):
                 f.write(chunk)
