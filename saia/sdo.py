@@ -1,3 +1,4 @@
+from io import BufferedWriter, TextIOWrapper
 import logging
 import httpx
 from bs4 import BeautifulSoup
@@ -6,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Self
 
-URL = "https://sdo.gsfc.nasa.gov/assets/img/browse/"
+URL = "https://sdo.gsfc.nasa.gov/assets/img/browse"
 
 
 class Channel(Enum):
@@ -42,7 +43,6 @@ class IMGInfo:
     @classmethod
     def from_filename(cls, filename: str) -> Self | None:
         date, time, resolution, channel = filename.removesuffix(".jpg").split("_")
-        # print(date, time, resolution, channel)
         try:
             return cls(
                 filename,
@@ -70,22 +70,35 @@ class SDOClient:
         r = self.client.get(URL + path)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
-        a_tags = soup.body.pre.find_all("a")[5:]
+        a_tags = soup.body.pre.find_all("a")[5:]  # type: ignore
         return map(lambda a: a.text.removesuffix(remove_suffix), a_tags)
 
     def fetch_years(self):
-        return list(self.fetch_table("", "/"))
+        return list(self.fetch_table("/", "/"))
 
     def fetch_months(self, year: str):
-        return list(self.fetch_table(f"{year}/", "/"))
+        return list(self.fetch_table(f"/{year}/", "/"))
 
     def fetch_days(self, year: str, month: str):
-        return list(self.fetch_table(f"{year}/{month}/", "/"))
+        return list(self.fetch_table(f"/{year}/{month}/", "/"))
 
-    def fetch_file_info(self, year: str, month: str, day: str):
-        filenames = self.fetch_table(f"{year}/{month}/{day}/")
-        return [
-            IMGInfo.from_filename(img)
-            for img in filenames
-            if IMGInfo.from_filename(img) is not None
-        ]
+    def fetch_file_info(self, year: str, month: str, day: str) -> list[IMGInfo]:
+        filenames = self.fetch_table(f"/{year}/{month}/{day}/")
+        return list(filter(None, map(IMGInfo.from_filename, filenames)))
+
+    def download_image(self, image_info: IMGInfo, f: BufferedWriter):
+        dt = image_info.datetime_
+        url = "/".join(
+            [
+                URL,
+                str(dt.year),
+                str(dt.month).zfill(2),
+                str(dt.day).zfill(2),
+                image_info.filename,
+            ]
+        )
+
+        with self.client.stream("GET", url) as r:
+            r.raise_for_status()
+            for chunk in r.iter_raw():
+                f.write(chunk)
