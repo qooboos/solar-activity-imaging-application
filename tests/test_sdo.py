@@ -50,9 +50,7 @@ async def client(tmpdir: Path):
 @pytest.mark.asyncio
 async def test_get_years(client: SDOClient):
     # given
-    client.client.get = mock_response(
-        200, text=render_html_with_table(["2018/", "2019/", "2020/", "2021/", "2022/"])
-    )
+    client.client.get = mock_response(200, text=render_html_with_table(["2018/", "2019/", "2020/", "2021/", "2022/"]))
 
     # when
     years = await client.fetch_years()
@@ -64,9 +62,7 @@ async def test_get_years(client: SDOClient):
 @pytest.mark.asyncio
 async def test_get_months(client: SDOClient):
     # given
-    client.client.get = mock_response(
-        200, text=render_html_with_table(["01/", "02/", "03/", "03/", "04/"])
-    )
+    client.client.get = mock_response(200, text=render_html_with_table(["01/", "02/", "03/", "03/", "04/"]))
 
     # when
     months = await client.fetch_months("2020")
@@ -78,9 +74,7 @@ async def test_get_months(client: SDOClient):
 @pytest.mark.asyncio
 async def test_get_days(client: SDOClient):
     # given
-    client.client.get = mock_response(
-        200, text=render_html_with_table(["01/", "02/", "03/", "03/", "04/"])
-    )
+    client.client.get = mock_response(200, text=render_html_with_table(["01/", "02/", "03/", "03/", "04/"]))
 
     # when
     days = await client.fetch_days("2020", "01")
@@ -107,16 +101,6 @@ async def test_get_file_info(client: SDOClient):
 
     # then
     assert files == [
-        IMGInfo(
-            "20231020_000000_1024_HMIB.jpg",
-            dt(2023, 10, 20, 0, 0, 0, 0),
-            1024,
-            Channel.HMI_Magnetogram,
-        ),
-        IMGInfo(
-            "20231020_000000_2048_HMIIF.jpg",
-            dt(2023, 10, 20, 0, 0, 0, 0),
-            2048,
-            Channel.HMI_Intensitygram_Flattened,
-        ),
+        IMGInfo("20231020_000000_1024_HMIB.jpg", dt(2023, 10, 20), 1024, Channel.HMI_Magnetogram),
+        IMGInfo("20231020_000000_2048_HMIIF.jpg", dt(2023, 10, 20), 2048, Channel.HMI_Intensitygram_Flattened),
     ]

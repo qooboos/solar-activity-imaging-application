@@ -22,11 +22,7 @@ async def main_():
         months = await client.fetch_months(years[2])
         days = await client.fetch_days(years[2], months[1])
         file_names = await client.fetch_file_info(years[2], months[1], days[12])
-        file_names = [
-            f
-            for f in file_names
-            if f.channel == Channel.AIA131 and f.resolution == 4096
-        ]
+        file_names = [f for f in file_names if f.channel == Channel.AIA131 and f.resolution == 4096]
         for imgs in batched(file_names, 20):
             await asyncio.gather(*(download_to_file(client, img) for img in imgs))
 

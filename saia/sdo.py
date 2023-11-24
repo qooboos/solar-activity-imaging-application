@@ -88,11 +88,7 @@ class SDOClient:
         filenames = await self.fetch_table(f"/{year}/{month}/{day}/")
         return list(filter(None, map(IMGInfo.from_filename, filenames)))
 
-    async def download_image(
-        self,
-        image_info: IMGInfo,
-        *target: BufferedWriter | BytesIO,
-    ) -> None:
+    async def download_image(self, image_info: IMGInfo, *target: BufferedWriter | BytesIO) -> None:
         dt = image_info.datetime_
         url = "/".join(
             [
