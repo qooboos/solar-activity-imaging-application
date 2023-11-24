@@ -43,8 +43,8 @@ class IMGInfo:
 
     @classmethod
     def from_filename(cls, filename: str) -> Self | None:
-        date, time, resolution, channel = filename.removesuffix(".jpg").split("_")
         try:
+            date, time, resolution, channel = filename.removesuffix(".jpg").split("_")
             return cls(
                 filename,
                 datetime(
