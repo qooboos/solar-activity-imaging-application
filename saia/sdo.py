@@ -1,11 +1,13 @@
-from io import BufferedWriter, TextIOWrapper
 import logging
-import httpx
-from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Self
+from io import BufferedWriter, BytesIO
+from pathlib import Path
+from typing import Iterable, Self
+
+import httpx
+from bs4 import BeautifulSoup
 
 URL = "https://sdo.gsfc.nasa.gov/assets/img/browse"
 
@@ -34,7 +36,6 @@ class Channel(Enum):
 
 @dataclass
 class IMGInfo:
-    # 20120213_235957_1024_0304.jpg
     filename: str
     datetime_: datetime
     resolution: int
@@ -63,30 +64,35 @@ class IMGInfo:
 
 
 class SDOClient:
-    def __init__(self, client: httpx.AsyncClient):
+    def __init__(self, client: httpx.AsyncClient, cache_dir: Path):
         self.client = client
+        self.cache_dir = cache_dir
 
-    async def fetch_table(self, path: str, remove_suffix: str = ""):
+    async def fetch_table(self, path: str, remove_suffix: str = "") -> Iterable[str]:
         r = await self.client.get(URL + path)
         r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         a_tags = soup.body.pre.find_all("a")[5:]  # type: ignore
         return map(lambda a: a.text.removesuffix(remove_suffix), a_tags)
 
-    async def fetch_years(self):
+    async def fetch_years(self) -> list[str]:
         return list(await self.fetch_table("/", "/"))
 
-    async def fetch_months(self, year: str):
+    async def fetch_months(self, year: str) -> list[str]:
         return list(await self.fetch_table(f"/{year}/", "/"))
 
-    async def fetch_days(self, year: str, month: str):
+    async def fetch_days(self, year: str, month: str) -> list[str]:
         return list(await self.fetch_table(f"/{year}/{month}/", "/"))
 
     async def fetch_file_info(self, year: str, month: str, day: str) -> list[IMGInfo]:
         filenames = await self.fetch_table(f"/{year}/{month}/{day}/")
         return list(filter(None, map(IMGInfo.from_filename, filenames)))
 
-    async def download_image(self, image_info: IMGInfo, f: BufferedWriter):
+    async def download_image(
+        self,
+        image_info: IMGInfo,
+        *target: BufferedWriter | BytesIO,
+    ) -> None:
         dt = image_info.datetime_
         url = "/".join(
             [
@@ -97,8 +103,20 @@ class SDOClient:
                 image_info.filename,
             ]
         )
-
         async with self.client.stream("GET", url) as r:
             r.raise_for_status()
             async for chunk in r.aiter_raw(4096):
-                f.write(chunk)
+                for t in target:
+                    t.write(chunk)
+
+    async def get_image(self, image_info: IMGInfo) -> bytes:
+        image_file = self.cache_dir / image_info.filename
+
+        if not image_file.exists():
+            buffer = BytesIO()
+            with image_file.open("bw") as f:
+                await self.download_image(image_info, f, buffer)
+                return buffer.read()
+
+        with image_file.open("br") as f:
+            return f.read()
